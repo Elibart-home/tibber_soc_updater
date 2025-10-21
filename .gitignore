@@ -1,0 +1,16 @@
+# PowerShell release scripts (contain tokens)
+quick_release.ps1
+create_release.ps1
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

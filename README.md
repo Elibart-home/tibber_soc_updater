@@ -66,6 +66,25 @@ Met deze service kun je de SoC (State of Charge) van je voertuig instellen in Ti
 - `home_id`: ID van je Tibber home (verplicht)
 - `battery_level`: Batterijniveau 0-100 (verplicht)
 
+### Get Connected Vehicle
+
+Met deze service kun je informatie ophalen over het voertuig dat momenteel verbonden is met de lader.
+
+**Service:** `tibber_soc_updater.get_connected_vehicle`
+
+**Parameters:**
+- `home_id`: ID van je Tibber home (verplicht)
+
+**Response:**
+- `id`: Voertuig ID
+- `name`: Naam van het voertuig
+- `model`: Model van het voertuig
+- `battery_level`: Huidige batterijniveau
+- `range`: Huidige actieradius
+- `connected`: Of het voertuig verbonden is
+- `charging`: Of het voertuig aan het laden is
+- `charging_power`: Laadvermogen
+
 **Voorbeeld met echte IDs:**
 ```yaml
 service: tibber_soc_updater.set_vehicle_soc
@@ -73,6 +92,13 @@ data:
   vehicle_id: "a739d722-ae8b-4778-a521-8c93ee509837"
   home_id: "3c3a7b9c-590e-4000-8046-ef4d12612acd"
   battery_level: 80
+```
+
+**Voorbeeld van verbonden voertuig detecteren:**
+```yaml
+service: tibber_soc_updater.get_connected_vehicle
+data:
+  home_id: "3c3a7b9c-590e-4000-8046-ef4d12612acd"
 ```
 
 **Voorbeeld met secrets:**
@@ -88,27 +114,44 @@ data:
 
 ## 🤖 Automatiseringen
 
-### Token Vernieuwing en SoC Aanpassing
+### Automatische Voertuig Detectie en SoC Aanpassing
 
-De integratie heeft automatische token vernieuwing (elke 18 uur), maar hier is een voorbeeld van een automatisering die de SoC aanpast voor laadbeheersing:
+Hier is een geavanceerd voorbeeld dat automatisch het verbonden voertuig detecteert en de SoC aanpast:
 
 ```yaml
-alias: "Tibber SoC bijwerken bij verbinding"
-description: "Verhoogt de SoC met 20% voor Tibber wanneer de auto wordt aangesloten"
+alias: "Automatische Tibber SoC bijwerking"
+description: "Detecteert verbonden voertuig en past SoC automatisch aan"
 trigger:
   - platform: state
     entity_id: sensor.jouw_laadpaal_status
     from: Disconnected
+    to: Connected
 action:
-  # Direct de SoC bijwerken (token vernieuwing gebeurt automatisch)
-  - service: tibber_soc_updater.set_vehicle_soc
+  # Stap 1: Detecteer welk voertuig verbonden is
+  - service: tibber_soc_updater.get_connected_vehicle
     data:
-      vehicle_id: "a739d722-ae8b-4778-a521-8c93ee509837"
       home_id: "3c3a7b9c-590e-4000-8046-ef4d12612acd"
-      battery_level: >-
-        {% set soc = states('sensor.jouw_auto_soc') | float(default=0) | int %}
-        {% set adjusted_soc = (soc + 20) | int %}
-        {{ [adjusted_soc, 100] | min }}
+    response_variable: connected_vehicle
+  
+  # Stap 2: Controleer of er een voertuig verbonden is
+  - if:
+      - condition: template
+        value_template: "{{ connected_vehicle is not none }}"
+    then:
+      # Stap 3: Bereken nieuwe SoC (huidige + 20%, max 100%)
+      - service: tibber_soc_updater.set_vehicle_soc
+        data:
+          vehicle_id: "{{ connected_vehicle.id }}"
+          home_id: "3c3a7b9c-590e-4000-8046-ef4d12612acd"
+          battery_level: >-
+            {% set current_soc = connected_vehicle.battery_level | int %}
+            {% set adjusted_soc = (current_soc + 20) | int %}
+            {{ [adjusted_soc, 100] | min }}
+    else:
+      - service: system_log.write
+        data:
+          message: "Geen voertuig verbonden met de lader"
+          level: info
 mode: single
 ```
 
@@ -203,7 +246,13 @@ Bijdragen zijn welkom! Als je een bug vindt of een verbetering wilt voorstellen:
 
 ### Changelog
 
-**v2.1.1 (Latest)**
+**v2.2.0 (Latest)**
+- ✅ **Nieuwe service**: `get_connected_vehicle` - Detecteert automatisch verbonden voertuigen
+- ✅ **Geavanceerde automatisering** - Automatische voertuig detectie en SoC aanpassing
+- ✅ **Uitgebreide voertuig informatie** - Naam, model, batterijniveau, laadstatus
+- ✅ **Intelligente laadbeheersing** - Automatische SoC aanpassing per voertuig
+
+**v2.1.1**
 - ✅ Fix endpoint testing warnings - Geen verwarrende berichten meer
 - ✅ Verbeterde GraphQL endpoint testing met POST requests
 - ✅ Betere logging op debug level

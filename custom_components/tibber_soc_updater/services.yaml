@@ -23,4 +23,15 @@ set_vehicle_soc:
           min: 0
           max: 100
           step: 1
-          unit_of_measurement: "%" 
+          unit_of_measurement: "%"
+
+get_connected_vehicle:
+  name: Get Connected Vehicle
+  description: Get information about the currently connected vehicle
+  fields:
+    home_id:
+      name: Home ID
+      description: The ID of the home to check for connected vehicles
+      required: true
+      selector:
+        text: 

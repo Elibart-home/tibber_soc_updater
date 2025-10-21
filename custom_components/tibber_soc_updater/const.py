@@ -35,6 +35,26 @@ query GetVehicle($homeId: ID!) {
 }
 """
 
+QUERY_GET_CONNECTED_VEHICLE = """
+query GetConnectedVehicle($homeId: ID!) {
+    me {
+        home(id: $homeId) {
+            id
+            vehicles {
+                id
+                batteryLevel
+                range
+                connected
+                charging
+                chargingPower
+                name
+                model
+            }
+        }
+    }
+}
+"""
+
 MUTATION_SET_VEHICLE_SOC = """
 mutation SetVehicleSettings($vehicleId: String!, $homeId: String!, $settings: [SettingsItemInput!]) {
     me {

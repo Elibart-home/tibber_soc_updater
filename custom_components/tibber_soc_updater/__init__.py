@@ -8,8 +8,8 @@ import async_timeout
 from datetime import timedelta
 
 # Version information
-__version__ = "2.1.1"
-__version_info__ = (2, 1, 1)
+__version__ = "2.2.0"
+__version_info__ = (2, 2, 0)
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -109,7 +109,63 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 err
             )
 
+    async def get_connected_vehicle(call: ServiceCall) -> None:
+        """Get the currently connected vehicle."""
+        _LOGGER.debug("Get connected vehicle service called with data: %s", call.data)
+        
+        home_id = call.data.get(ATTR_HOME_ID) or call.data.get("home_id")
+        
+        if not home_id:
+            _LOGGER.error("Missing required parameter: home_id")
+            return
+        
+        try:
+            # Import the query
+            from .const import QUERY_GET_CONNECTED_VEHICLE
+            
+            # Execute GraphQL query
+            result = await api.execute_gql(QUERY_GET_CONNECTED_VEHICLE, {"homeId": home_id})
+            
+            if "data" in result and "me" in result["data"] and "home" in result["data"]["me"]:
+                home_data = result["data"]["me"]["home"]
+                vehicles = home_data.get("vehicles", [])
+                
+                # Find connected vehicles
+                connected_vehicles = [
+                    {
+                        "id": vehicle["id"],
+                        "name": vehicle.get("name", "Unknown"),
+                        "model": vehicle.get("model", "Unknown"),
+                        "battery_level": vehicle.get("batteryLevel"),
+                        "range": vehicle.get("range"),
+                        "connected": vehicle.get("connected", False),
+                        "charging": vehicle.get("charging", False),
+                        "charging_power": vehicle.get("chargingPower")
+                    }
+                    for vehicle in vehicles
+                    if vehicle.get("connected", False)
+                ]
+                
+                if connected_vehicles:
+                    _LOGGER.info("Found %d connected vehicle(s): %s", 
+                               len(connected_vehicles), 
+                               [v["name"] for v in connected_vehicles])
+                    
+                    # Return the first connected vehicle (most common case)
+                    return connected_vehicles[0]
+                else:
+                    _LOGGER.info("No vehicles currently connected")
+                    return None
+            else:
+                _LOGGER.error("Invalid response structure from Tibber API")
+                return None
+                
+        except Exception as err:
+            _LOGGER.error("Failed to get connected vehicle: %s", err)
+            return None
+
     hass.services.async_register(DOMAIN, "set_vehicle_soc", set_vehicle_soc)
+    hass.services.async_register(DOMAIN, "get_connected_vehicle", get_connected_vehicle)
 
     # Set up periodic token refresh (every 18 hours)
     async def refresh_token():
