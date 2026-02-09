@@ -29,13 +29,6 @@ Deze custom component voor Home Assistant maakt het mogelijk om de State of Char
 2. Kopieer de map `custom_components/tibber_soc_updater` naar je Home Assistant config directory
 3. Herstart Home Assistant
 
-### Test script
-Er is een test script beschikbaar om de integratie te testen:
-```bash
-# Update credentials in test_integration.py
-python test_integration.py
-```
-
 ## ⚙️ Configuratie
 
 1. Ga naar Configuratie > Integraties
@@ -44,14 +37,6 @@ python test_integration.py
 4. Vul de volgende gegevens in:
    - **Tibber gebruikersnaam** (e-mail)
    - **Tibber wachtwoord**
-
-### Debug logging inschakelen
-Voor uitgebreide logging voeg dit toe aan je `configuration.yaml`:
-```yaml
-logger:
-  logs:
-    custom_components.tibber_soc_updater: debug
-```
 
 ## 🔧 Services
 
@@ -66,55 +51,12 @@ Met deze service kun je de SoC (State of Charge) van je voertuig instellen in Ti
 - `home_id`: ID van je Tibber home (verplicht)
 - `battery_level`: Batterijniveau 0-100 (verplicht)
 
-### Get Connected Vehicle
 
-Met deze service kun je informatie ophalen over het voertuig dat momenteel verbonden is met de lader.
-
-**Service:** `tibber_soc_updater.get_connected_vehicle`
-
-**Parameters:**
-- `home_id`: ID van je Tibber home (verplicht)
-
-**Response:**
-- `id`: Voertuig ID
-- `name`: Naam van het voertuig
-- `model`: Model van het voertuig
-- `battery_level`: Huidige batterijniveau
-- `range`: Huidige actieradius
-- `connected`: Of het voertuig verbonden is
-- `charging`: Of het voertuig aan het laden is
-- `charging_power`: Laadvermogen
-
-**Voorbeeld met echte IDs:**
-```yaml
-service: tibber_soc_updater.set_vehicle_soc
-data:
-  vehicle_id: "a739d722-ae8b-4778-a521-8c93ee509837"
-  home_id: "3c3a7b9c-590e-4000-8046-ef4d12612acd"
-  battery_level: 80
-```
-
-**Voorbeeld van verbonden voertuig detecteren:**
-```yaml
-service: tibber_soc_updater.get_connected_vehicle
-data:
-  home_id: "3c3a7b9c-590e-4000-8046-ef4d12612acd"
-```
-
-**Voorbeeld met secrets:**
-```yaml
-service: tibber_soc_updater.set_vehicle_soc
-data:
-  vehicle_id: !secret tibber_vehicle_id
-  home_id: !secret tibber_home_id
-  battery_level: 80
-```
-
-> **Note:** De vehicle_id en home_id kun je vinden in de Tibber app of via de test script.
+> **Note:** De vehicle_id en home_id kun je vinden in met het script getIDs.ps1.
 
 ## 🤖 Automatiseringen
 
-### Automatische Voertuig Detectie en SoC Aanpassing
+### SoC Aanpassing
 
 Hier is een geavanceerd voorbeeld dat automatisch het verbonden voertuig detecteert en de SoC aanpast:
 
@@ -130,7 +72,7 @@ action:
   # Stap 1: Detecteer welk voertuig verbonden is
   - service: tibber_soc_updater.get_connected_vehicle
     data:
-      home_id: "3c3a7b9c-590e-4000-8046-ef4d12612acd"
+      home_id: "HOME_ID"
     response_variable: connected_vehicle
   
   # Stap 2: Controleer of er een voertuig verbonden is
@@ -142,7 +84,7 @@ action:
       - service: tibber_soc_updater.set_vehicle_soc
         data:
           vehicle_id: "{{ connected_vehicle.id }}"
-          home_id: "3c3a7b9c-590e-4000-8046-ef4d12612acd"
+          home_id: "HOME_ID"
           battery_level: >-
             {% set current_soc = connected_vehicle.battery_level | int %}
             {% set adjusted_soc = (current_soc + 20) | int %}
@@ -211,30 +153,6 @@ De integratie is **getest en stabiel** - geen bekende problemen met:
    - ✅ **Opgelost in v2.1** - Automatische token vernieuwing elke 18 uur
    - JWT token validatie controleert automatisch scopes
 
-### Debug Logging
-
-Voor uitgebreide troubleshooting:
-```yaml
-logger:
-  logs:
-    custom_components.tibber_soc_updater: debug
-```
-
-### Test Script
-Gebruik het test script om de integratie te testen:
-```bash
-python test_integration.py
-```
-
-### Belangrijke IDs
-```json
-{
-    "vehicle_id": "a739d722-ae8b-4778-a521-8c93ee509837",
-    "charger_id": "71bfe079-205a-4a5b-a264-a251aa61d1e8",
-    "home_id": "3c3a7b9c-590e-4000-8046-ef4d12612acd"
-}
-```
-
 ## 🤝 Bijdragen
 
 Bijdragen zijn welkom! Als je een bug vindt of een verbetering wilt voorstellen:
@@ -287,4 +205,5 @@ Deze integratie is niet officieel en wordt niet ondersteund door Tibber. Gebruik
 - [GitHub Repository](https://github.com/Elibart-home/tibber_soc_updater)
 - [Issues](https://github.com/Elibart-home/tibber_soc_updater/issues)
 - [Troubleshooting Guide](TROUBLESHOOTING.md)
+
 - [Test Script](test_integration.py) 
